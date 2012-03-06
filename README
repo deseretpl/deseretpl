@@ -1,0 +1,31 @@
+This is an attempt at porting what appears to be a lisp recovered from golden tapes found in the closet of an old BYU annex.
+
+What follows is an attempt at deciphering what the symbols do. 
+
+{L} = list
+{K} = cons
+{P} = lambda/procedure 
+{D} = define
+{S} = set!
+{M} = macro
+{E} = eq?
+{B} = not
+{A} = and
+{O} = or
+{I} = if
+{T} = true
+{F} = false
+
+uppercase characters are reserved for functions and lowercase characters for variables in functions. 
+
+There seems to be some notion of user worlds/levels in which different parts of the language are available. 
+
+terrestial - you can call functions
+
+telestial - you can define new functions and call them 
+
+celestial - you can define what appear to be macros and even operators
+
+The site has an online REPL where anyone is welcome to play with the environment. The users are - eve:rib adam:eve elohim:gonhorra
+
+Respectively eve can access the terrestial, adam the telestial and elohim the celestial 
