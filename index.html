@@ -110,13 +110,10 @@
 		var resizeReplText = function(){
 			replText.css({paddingTop: $(window).height() - 45});
 			replText.scrollTop(replText.prop('scrollHeight'));
+			replInput.css({width: $(window).width() - 80});
 		};
 		
 		var workspaceTitle = $('.workspace .title');
-
-		resizeReplText();
-		
-		$(window).resize(resizeReplText);
 		
 		var workspace = "TER";
 		
@@ -165,6 +162,10 @@
 				replInput.val(replHistory[replHistoryAt]).focus();
 			}
 		}).focus();
+
+		resizeReplText();
+		
+		$(window).resize(resizeReplText);
 	});
 	</script>
 	<script type="text/javascript" src="dpl.min.js"></script>
