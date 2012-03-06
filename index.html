@@ -6,12 +6,14 @@
 <head>
 	<title>DPL</title>
 	<link rel="stylesheet" href="stylesheet.css" type="text/css" charset="utf-8" />
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 	<style>
 		body {font-family: TimesBeeRegular; margin: 0; }
 
 		h1 { text-align: center; margin: 0; padding: 0; font-size: 167%; color: #A1461D; margin-bottom: 10px;}
 		
 		.terminal { 
+			position: relative;
 			background: #A1461D; 
 			color: #FFA81E;
 			width: 500px;
@@ -24,6 +26,11 @@
 			font-size: 150%;
 		}
 
+		.terminal .bottom {
+			position: absolute;
+			bottom: 5px;
+		}
+		
 		.terminal .bottom .workspace { 
 			float: left; 
 		}
