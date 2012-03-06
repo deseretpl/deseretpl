@@ -53,6 +53,11 @@
 			padding-left: 5px; 
 		}
 		
+		.terminal pre > div.asciiart {
+			font-family: monospace;
+			font-size: 25%;
+		}
+				
 		.terminal pre .seperator, .terminal .bottom .workspace .seperator {
 			font-family: monospace;
 		}
@@ -98,52 +103,144 @@
 		}, 
 
 		env: {},
+		
+		auth: function(user, pass) {
+			if(user == 'eve' && pass == 'rib') {
+				return 'TER';
+			}
+			if(user == 'adam' && pass == 'sin') {
+				return 'TEL';
+			}
+			if(user == 'elohim' && pass == 'melk') {
+				return 'CEL';
+			}
+			return false;
+		}
 	};
 	
 	window.exports = window.DPL;
-	$(function() {		
+	$(function() {
+		var promptForInput = function(label, cb) {
+			workspaceTitle.text(label);
+			onInputCB = cb;
+		};
+		
+		var clearRepl = function() {
+			replText.html('');
+		};
+		
 		var replText = $('.terminal pre').click(function(){
 			replInput.focus();
-		
 		});
-		
+				
 		var resizeReplText = function(){
 			replText.css({paddingTop: $(window).height() - 45});
 			replText.scrollTop(replText.prop('scrollHeight'));
-			replInput.css({width: $(window).width() - 80});
+			replInput.css({width: $(window).width() - 100});
 		};
 		
-		var workspaceTitle = $('.workspace .title');
+		var addReplMsg = function(msg) {
+			replText.append(msg);
+			replText.scrollTop(replText.prop('scrollHeight'));
+		};
 		
+		var modes = {
+			login: function(msg) {
+				clearRepl();
+				addReplMsg('<div class="asciiart">' + $('#logo-ascii').text() + '</div>');
+				
+				if(msg) {
+					addReplMsg('<div>' + msg + '</div>');
+				}
+				
+				resizeReplText();
+				
+				promptForInput('USER', function(user) {
+					promptForInput('PASS', function(pass) {
+						if(workspace = DPL.auth(user, pass)) {
+							modes.repl("Welcome, " + user + ". You have " + workspace + " level access to the DPL subsystems.");
+						} else {
+							modes.login("You failed to authenticate. Please try again.");
+						}
+				})});	
+			},
+			
+			help: function() {
+				var helps = {
+					"what": "you are using an emulated version of the DPL terminal system.",
+					"functions": "D S P L E", 
+					"exit": "leave the help subsystem."
+				};
+				
+				promptForInput('HELP', function(topic) {
+					if(topic == "exit") {
+						modes.repl();
+						return;
+					}
+					
+					if(helps[topic]) {
+						addReplMsg('<div>' + helps[topic] + '</div>');
+					} else {
+						addReplMsg('<div>Could not find ' + topic + '. Valid help topics are (what functions exit)');
+					}
+				});
+			},
+			
+			repl: function(msg) {
+				if(msg) {
+					addReplMsg("<div>" + msg + "</div>");
+				}
+				
+				promptForInput(workspace, function(input) {
+					addReplMsg("<div>" + workspace + "<span class=\"seperator\">></span>" + input + "</div>");
+					replHistory.push(input);
+					replHistoryAt = replHistory.length;
+
+					if(input == 'clear') {
+						clearRepl();
+						return;
+					}
+					
+					if(input == 'logout') {
+						modes.login("Thank you for using DPL.");
+						return;
+					}
+					
+					if(input == 'help') {
+						modes.help();
+						return;
+					}
+					
+					try { 
+						if(input[0] != "(" && input[0] != '"' && input[0] != "`" && input[0] != "'") {
+							input = "(value " + input + ")";
+						}
+
+						var output = DPL.to_string(DPL.readEval(input));
+					} catch (e) {
+						var output = e;
+					}
+
+					addReplMsg("<div>" + output + "</div>");
+				});
+			}
+		};	
+		
+
+		var workspaceTitle = $('.workspace .title');	
 		var workspace = "TER";
-		
-		workspaceTitle.text(workspace);
-		
 		var replHistory = [];
 		var replHistoryAt = 0;
+
+		var onInputCB= false;
+				
 		var replInput = $('.terminal input').keydown(function(e) {
 			//enter
 			if(e.keyCode == 13) {
-				var input = replInput.val();
-				replText.append("<div>" + workspace + "<span class=\"seperator\">></span>" + input + "</div>");
-				replHistory.push(input);
-				replHistoryAt = replHistory.length;
-
-				try { 
-					if(input[0] != "(" && input[0] != '"' && input[0] != "`" && input[0] != "'") {
-						input = "(value " + input + ")";
-					}
-
-					var output = DPL.to_string(DPL.readEval(input));
-				} catch (e) {
-					var output = e;
-				}
-
-				replText.append("<div>" + output + "</div>");
-				replText.scrollTop(replText.prop('scrollHeight'));
+				onInputCB(replInput.val());
 				replInput.val('');
 			}
-
+			
 			//up
 			if(e.keyCode == 38) {
 				replHistoryAt--;
@@ -163,9 +260,8 @@
 			}
 		}).focus();
 
-		resizeReplText();
-		
 		$(window).resize(resizeReplText);
+		modes.login("Welcome to DPL. Please login.<div>&nbsp;</div>");
 	});
 	</script>
 	<script type="text/javascript" src="dpl.min.js"></script>
@@ -179,4 +275,101 @@
                </div>
        </div>
 </body>
+<script type="text/asciiart" id="logo-ascii">
+
+                                                                                                                                         
+                                                                                                                                         
+                                                                                                                                         
+                                                                    .  .                                                                 
+                                                                       .          .                                                      
+                                                                       ..       ...  ..                                                  
+                                                                      ...      ..  ..   ..                                               
+                                                          .   ..  ..  ..     ...     ...                                                 
+                                                       .   .....''','';;;,,,,........       ..                                           
+                                               ..      ......:llc:;'.....',clll:'.   ..                                                  
+                                                       ..';c:,';cdkkO00OOOxoc:cdd,....                                                   
+                                                      .,:cclool:cXX0XWMMWXXKolxdc:'....                                                  
+                                           .......,,cxkkxdlc,.  'KOdKWMMWKKx. .oOo:c:,''....      ..                                     
+                                                 ..,lkXMWOc'.   .dNMMMMMMMNc   .kKkOo'.....                                              
+                                                   ...:k00XXKxc;''cOXNNNXk:..';kNWNd..                                                   
+                                                .....  .;lc:;clodoloollcccccooxNW0o,......                                               
+                                                      ....     .',:;,:okOO00KKKd;',;,......                                              
+                                                                 ..   .',.,::...   ........                                              
+                                                ...          .  .       ......        .... ..                                            
+                                               ..                        .  ..                                                           
+                                                                          .   ..                                                         
+                                                                               .                                                         
+                                                                                                                                         
+                                                                                                                                         
+                                                                                                                                         
+                                                                                                                                         
+                                                        .';ldxkOOklcoOK0dlodoolc,..                                                      
+                                                     ,o0XWMMWWNXNWMMMMMWNKOk0NNNNNX0l.                                                   
+                                                  .lKWMMMXxl:,...;cddo:'.    ...cKMMWKc.                                                 
+                                             .,cloOWMMMMWd.                     .kWMMWNKko;.                                             
+                                          .oKNWMMNOoOWMMMK;   .              ..;kWWKl;;oKWWNKo.                                          
+                                        .;0WMMMMXo'..;okXNOk0XXOOOxc,..,xkdoOXNWNkl.    .xWMMMKc.                                        
+                                     .;xKWMMMMMMMNk.    .ldxONNNWWWNNXXNWNXXKkdl.        cNMMWWWKkl;.                                    
+                                   .dXWMMWKXMMMMM0'          ...';,.':c;.....         ..dNMWK:oNMMMWNk'                                  
+                                 .xNMMMMMNOXWKONMWOxc'..                           .;kXWMMNo. 'k0NMMMMX:.                                
+                               .,xWMMMMMMMMNc..,dKXWWNNK0kc::,',,.  ...  ..,odl;:dOKWWNKxc.    ;OWMMMMMWXx;                              
+                             'kNWMMMMMMMMMWx.    ..,clk0NWNNWWNWW0kKNN0k0XNNWWWNX0kdc'.       .dNMMMNK0NMMNo.                            
+                           .lNMMMMMMMWWMMMNc.          .',.'oo:lkxooOKOdc,.'::'.             'xWMMWk'  :XMMWO.                           
+                          .OWMMMMMWN0ddOXWMNkc,.                                          .,xNMWXx;    ;KMMMWx.                          
+                         ,OWMMMMMMWXKOc,,ckNNXXO:,:lc....  ..                     .ckxlcx0NNNXkc.     lNMMMMWWNO:.                       
+                      .cOWMMMMMMMMMMW0,   ..'.c0NNNNWNWNKO0X0, .... .'lxxkxccdkkoo0WMWNNKko;..       :XMMMNd,c0WWO'                      
+                     :KWMMMMMMMMMMMMMWKdc.     .....:lk0OKNWWK0XXNXXNNWMMMWNNNNNX0kdc'...          .lXMMXd'   cNMWk.                     
+                    :NMMMMMMMMWKkONWMMW0c.               .';odl;',oo:,;ol:,......                .kNNXOl.    .0MMMX;                     
+                  .;KMMMMMMMMMW0lclld0NKocc,                                            ..  .;oxOXXl..     .,kWMMMMNO;                   
+                .xKWMMMMMMMMMMMNx;....cx0XWXkxdo:.                                .'..'oXXO0NNNKkc.       cKWMMN0xONMX:                  
+               ;KMMMMMMMMMMMMMMWKoll,.  ..,ccokOkxddx00kodl,';lc;;;'....  .;lddlokXWNNNXKOdl;'.        .;xNMN0o'..lNMW0,                 
+              'KMMMMMMMMMMMMMMMMMMWk..'..        .,;loldkxdOXXNNNNXXXXXOdOXNNXNNNNXKko;.            .,dKWMWk,.   ;XMMMN;                 
+              lNMMMMMMMMMMMMMWKKWMMNXNK:..'.                . .... .''....'.......            .,ldxOXNKkdc'     '0WMMMW0:                
+             ,OWMMMMMMMMMMMMWOcldkKNWWWKXWWk,.                                               :KWMMMWK;       .lxXMMWNXWMWx.              
+            lKWMMMMMMMMMMMMMWkxxolllooOKXNNNN0lcdd:,'.                            .;dxxl:cdOKNNXOd:'.   .'..,kWMMNx;'oNMMWd.             
+           lWMMMMMMMMMMMMMMMMMMWNOocc:c:'..;odOKKNWNNK0KOxxOOxl,..;oxOx:cxkkc:okOk0WMMMWNXOdl,.        .dXXXWMWKx;. .dNMMMN:             
+          'XMMMMMMMMMMMMMNNWMMMMMMMWWWNo. ..   ..':::lllk0O0XXXNNNXWMMWXXWMWXKKOocclllc,.           .'cOWMMWXx;.   .;kWMMMMNx.           
+          oWMMMMMMMMMMMMXdokkOXNMMMMMMWX000:               ....';'.;ol,..;c,..                   .oOXWWNKko;.  ..,xKWMMWKNMMWd           
+         .oWMMMMMMMMMMMMWOdkk:.,lxKNMMMMMWO;. .    .'..                                .,   .;;:dXMWN0l.     .oKKNMMMXk;.xWMM0.          
+        ,OWMMMMMMMMMMMMMMMMW0;.''',cldk0XNWX000l:dOXNN0o'    .... ..        ....lxl,;dkKXolkKWWNXOl;.      .xXWMMMMNx.  :NMMMO.          
+       :XMMMMMMMMMMMMMMMMMMMWXNXo..     .',looxKKNWWWMMWNK0OKXNNXKXX0kOOxdkOXXXNMMWXXXNNX0kdl:'..     ;l,;o0WMMNko:'.  ;KMMMWx           
+      'KMMMMMMMMMMMMMNK00XNWMMMMN0:            ..';:coolkKOxdKXK0XNXKKXNX0kxXNXOdc;'.....           .xWMWWMMWN0;     cOWMMMMMXl.         
+      cWMMMMMMMMMMMW0ool,.'cxXNNMWXkdc.                      ..  ...  ...   ...                .'cxkKWMMNOxo;..     cXMMMMMMMMNl         
+      cWMMMMMMMMMMMWNNNx.    .':xXNMMMXxdkd,.  ..                                         .,lx0XWMMMMWXx,      .'. lNMNKkxKWMMM0.        
+      lWMMMMMMMMMMMMMMMX:.  ..   .,lxOXNNWMNK0KX0xxO0o. .;::coc'.      ..'..;c::oxOOllk000XWMMNX0xl:;'.      .,kN0ONN0;. .0MMMWk.        
+    .dNMMMMMMMMMMMMWMMMM0ccodc..     .,:look0OKWNNWMWNKKNMMMMMWX0Oo,;cxKNWNWMMMMMMMMNXNWMWXko:'.         .:dOXWMMNkl,.  .kWMMMWO,        
+   .dWMMMMMMMMMMWXkdk0XWWWWMMWN0:.''..        .'.':c,;oxdk0OdxKKOkXXK0xxKXKOOKKK0kdc'..;:,.          .lxkXWMWNX0o,.   'kNMMMMMMMK:       
+   ;XMMMMMMMMMMMMN0dcldkxdkNMMMMNXXd,....                .    .   ...    ..                 .   .,;:xXWMMNOo,..    ;oONMMMWOKWMMWk.      
+   ;NMMMMMMMMMMMMMWNKKk:'.,lxxx0NMMWNNNX000Odoo;.                                    '::'.:OKkxOKWWWNX0xl'        cXMMMWKx;.dWMMWk.      
+   '0WMMMMMMMMMMMMMMMN0K0l;,..':ok0KXNWWWMMMMMMN0kl'..,c:..';,..',...,:,. .;ll;';::lONMMNNWWXKxlloc;..          ,xNMMWKl. .dNMMMWx.      
+  .dNMMMMMMMMMMMMMMMMMMMMNNKx;........,';ox000XWNXNXKXWMWKXWMNXXNWXKXWWN0KNWMMWNNWWMWXKkoc;'.               'c:dNWKkc'.  ,OWMMMMMNl      
+ .lWMMMMMMMMMMMMXkxkxxKWMMMMMXx:.             .,..cocd00OXNXKO0XX0OOXXKkdox0ko:,';::,.                  .':xNMWN0c.    'OWMMMMMMMMX'     
+ .xWMMMMMMMMMMMWk,..':ldkKNNNMMNd....                    ...  ...   ..                            .';coOXXX0dc;.      ,OWMNOokWMMMX'     
+ .kWMMMMMMMMMMMWO;.',....';';oONWXXXK0kl;cl;                                             .'..''..;0NWMNk;..       ';;xNMMK:..kWMMMk.     
+  cNMMMMMMMMMMMMMNXNXdkk.     .';ld0KKNWWMMXdccllc;....,,...'.  ..         .    ..';ll;,lKNKK0Oookd;:c,        .'xNMWMMW0' .OMMMMX'      
+  :XMMMMMMMMMMMMMMMMMMMXdxkc...    ...,:oxx0KKOOXNXKKXNWWNNNWNXXXXOk0KOxxOKXOxkKXXNWMWNKOdc,..            .'lx0XNMW0o;,c: 'kWMMMWx.      
+ ;XMMMMMMMMMMMMMMMMWXKNWMMMWN0,..           .   ...'lx00kox0K0KXXKOdld0OkoldOOd:,.,c:,..              'x00KWMMMWXk:.  'ddoXMMMMMMX'      
+.xMMMMMMMMMMMMMMMMN0c;:cox0WMWKXKo....                         ..                             .,;o0xd0NMWNKOxc,..  .cxXWWMWNkxNMMW;      
+.kMMMMMMMMMMMMMMMMMX:.  ..';oxkXNNXXNKkxoc;.....                                  ..',;cl,'..dXWWMMWN0ko;..      .cKMMMMW0l;,dWMMN'      
+ lWMMMMMMMMMMMMMMMMMXxdOk,..''''';ldk00KWWWNXXXOoloddxd;.   ..   ...  ..,cddc,:d0XXNWWWWWNNXXXKOko;'.        .:dKNWMWKd:,. .dWMMWk.      
+ lWMMMMMMMMMMMMMMMMMMMMMXkk0NXxl'    ...',codkOOk0XXKNWNOxkKXOdxOO0KkOKXNWMMWNXWWWNK0kxo:clc,.          .. .oXMMMWN0l. .cxkXWMMMK,       
+ dWMMMMMMMMMMMMMMMMMMMMMMMMMMMMW0doo;.           ....',',::;,'cl:''ldl;'':l:,..';'..              'odco0XXKXKOxl:,..  ,kWMMMMMMWx.       
+ lWMMMMMMMMMMMMMMMMMMMW0dk0XNWMMMMMMNkoc,...                                                ....cONMMWNKko:'.     .ccoXMMMWNWMMMNc       
+ .xWMMMMMMMMMMMMMMMMMKc. ...'ckkdOXNMMMMWNNXkxkd,                              .,:,......;oOXNXXXNWNk:..      .,lx0NWMMWk;'.dNMMWx.      
+  :WMMMMMMMMMMMMMMMMMNOkOxoc.    ..;ldkkkKXKXWWWNK0Ol;'..';clllccc:;,:d00xldOO0XWWNNNNXXNWNKOd:,..'.       ..oXWMMMWXOxl. 'xNMMMWl       
+  ,KMMMMMMMMMMMMMMMMMMMMMMMX:...         ....,,'cdod0XNNNWWMMMMMMMMWWMMMMWKkxxOOkdl;',::,..          ...'o0XNWMNOo:,. 'occ0WMMMW0'       
+  .lXMMMMMMMMMMMMMMMMMMMMMMMWNNKxc.                 .xWMMMMMMMMMMMMMMMMMWx.                        'xXNNWMMWWW0,   . '0MMMMMMMWk'        
+    ,xXMMMMMMMMMMMMMMMMMMMMMMMMMMXdldkd:cox;..   ..,kWMMMMMMMMMMMMMMMMMMMNo               ..,:,.'l0NWWX0kxl;,oo. 'kK0XMMMMMMNk;          
+      'oOKNMMMMMMMMMMMMMMMWXOocldk00XWMMMMMWN0xldXNWMMMMMMMMMMMMMMMMMMMMMMX,   ..,;,..;lx0XNWMWNNNKkl;.     .ko.;0WMMMMMWKkc.            
+         .,o0NWMMMMMMMMMMWNk' ...  .oXNXOook00XWWWMMMMMMMMMMMMMMMMMMMMMMMMMKxkKXXNWNXXKOxxddxxo;'.     .:' .kNXXWMMMWN0x;.               
+            .,lONWMMMMMMMMWKdxOc. ;Ox;..    ..',:0WMMMMMMMMMMMMMMMMMMMMMMMMMW0o;:oxo;'.               ;0W0x0WMMMWX0x:.                   
+                .,cd0XWMMMMMMMKolkNNxo:.        :NMMMMMMMMMMMMMMMMMMMMMMMMMMK;              ..;clx00kONMMMMWNKOd;.                       
+                     .,lxOKNWMMMMMMMMMWXKKd.....dWMMMMMMMMMMMMMMMMMMMMMMMMMMNo.      ...,ldOXWMMMMMMWWNK0Od;.                            
+                          ..,cdk0XNWWMMMMMWNNNNKWMMMMMMMMMMMMMMMMMMMMMMMMMMMMWKO0K0xkXNNWMMWWWNXOxdc;,..                                 
+                                 ..;cdkOKXNWWWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWXKK0Oxoc;'..                                         
+                                         ...',;clooodxxkkkkxxxxxxxxxxxxddddollc:;,'....                                                  
+                                                                                                                                         
+                                                                                                                                         
+
+</script>
 </html>
